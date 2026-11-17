@@ -20,6 +20,7 @@ fun MapaUbicacion(
     estado: UbicacionUi,
     lugares: List<LugarConDistancia>,
     seleccionado: Int?,
+    masCercanoId: Int?,
     modifier: Modifier = Modifier
 ) {
     val camara = rememberCameraPositionState {

@@ -22,6 +22,7 @@ fun PantallaMapa(vm: MapaViewModel) {
     val lugares by vm.lugares.collectAsState()
     val seleccionado by vm.seleccionado.collectAsState()
     val contexto = LocalContext.current
+    val masCercano by vm.masCercano.collectAsState()
 
     val lanzador = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -60,17 +61,6 @@ fun PantallaMapa(vm: MapaViewModel) {
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            MapaUbicacion(
-                estado = estado,
-                lugares = lugares,
-                seleccionado = seleccionado,
-                modifier = Modifier.weight(1f).fillMaxWidth()
-            )
-
             Column(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -79,6 +69,7 @@ fun PantallaMapa(vm: MapaViewModel) {
                     estado = estado,
                     lugares = lugares,
                     seleccionado = seleccionado,
+                    masCercanoId = masCercano?.id,
                     modifier = Modifier.weight(1f).fillMaxWidth()
                 )
 
@@ -97,6 +88,18 @@ fun PantallaMapa(vm: MapaViewModel) {
                         UbicacionUi.Buscando -> CircularProgressIndicator()
                         is UbicacionUi.Lista -> {}
                         is UbicacionUi.Error -> Text(e.mensaje, color = MaterialTheme.colorScheme.error)
+                    }
+                    OutlinedButton(
+                        onClick = { masCercano?.let { vm.seleccionar(it.id) } },
+                        enabled = masCercano != null
+                    ) { Text("Ir al más cercano") }
+
+                    masCercano?.let { cercano ->
+                        val metros = lugares.firstOrNull { it.lugar.id == cercano.id }?.metros
+                        Text(
+                            "Más cercano: ${cercano.nombre} (${metros?.let { formatearDistancia(it) } ?: "-"})",
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
 
