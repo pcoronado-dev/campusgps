@@ -72,27 +72,40 @@ fun PantallaMapa(vm: MapaViewModel) {
             )
 
             Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxSize().padding(padding),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(
-                    onClick = { alPulsar() },
-                    enabled = estado !is UbicacionUi.Buscando
-                ) { Text("Obtener mi ubicación") }
+                MapaUbicacion(
+                    estado = estado,
+                    lugares = lugares,
+                    seleccionado = seleccionado,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                )
 
-                when (val e = estado) {
-                    UbicacionUi.Inicial -> Text("Pulsa el botón para empezar")
-                    UbicacionUi.Buscando -> CircularProgressIndicator()
-                    is UbicacionUi.Lista -> {
-                        Text("Latitud: ${e.posicion.latitud}")
-                        Text("Longitud: ${e.posicion.longitud}")
+                Column(
+                    modifier = Modifier.padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { alPulsar() },
+                        enabled = estado !is UbicacionUi.Buscando
+                    ) { Text("Obtener mi ubicación") }
+
+                    when (val e = estado) {
+                        UbicacionUi.Inicial -> Text("Pulsa el botón para empezar")
+                        UbicacionUi.Buscando -> CircularProgressIndicator()
+                        is UbicacionUi.Lista -> {}
+                        is UbicacionUi.Error -> Text(e.mensaje, color = MaterialTheme.colorScheme.error)
                     }
-                    is UbicacionUi.Error -> Text(
-                        e.mensaje,
-                        color = MaterialTheme.colorScheme.error
-                    )
                 }
+
+                ListaLugares(
+                    lugares = lugares,
+                    seleccionado = seleccionado,
+                    onClick = { vm.seleccionar(it) },
+                    modifier = Modifier.fillMaxWidth().height(220.dp)
+                )
             }
         }
     }
