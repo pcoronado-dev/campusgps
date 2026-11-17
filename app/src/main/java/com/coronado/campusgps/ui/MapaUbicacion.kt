@@ -12,6 +12,8 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberUpdatedMarkerState
+import androidx.compose.runtime.key
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 
 @Composable
 fun MapaUbicacion(
@@ -43,6 +45,17 @@ fun MapaUbicacion(
                 title = "Estás aquí"
             )
         }
-
+        lugares.forEach { item ->
+            key(item.lugar.id) {
+                Marker(
+                    state = rememberUpdatedMarkerState(
+                        position = LatLng(item.lugar.latitud, item.lugar.longitud)
+                    ),
+                    title = item.lugar.nombre,
+                    snippet = item.lugar.categoria,
+                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+                )
+            }
+        }
     }
 }
