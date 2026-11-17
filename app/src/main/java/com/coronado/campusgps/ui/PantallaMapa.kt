@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.coronado.campusgps.model.UbicacionUi
+import com.coronado.campusgps.util.formatearDistancia
 import com.coronado.campusgps.viewmodel.MapaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -21,8 +22,8 @@ fun PantallaMapa(vm: MapaViewModel) {
     val estado by vm.estado.collectAsState()
     val lugares by vm.lugares.collectAsState()
     val seleccionado by vm.seleccionado.collectAsState()
-    val contexto = LocalContext.current
     val masCercano by vm.masCercano.collectAsState()
+    val contexto = LocalContext.current
 
     val lanzador = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -61,10 +62,13 @@ fun PantallaMapa(vm: MapaViewModel) {
             )
         }
     ) { padding ->
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+        val error = estado as? UbicacionUi.Error
+
+        Column(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (error == null) {
                 MapaUbicacion(
                     estado = estado,
                     lugares = lugares,
@@ -72,23 +76,27 @@ fun PantallaMapa(vm: MapaViewModel) {
                     masCercanoId = masCercano?.id,
                     modifier = Modifier.weight(1f).fillMaxWidth()
                 )
+            }
 
-                Column(
-                    modifier = Modifier.padding(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { alPulsar() },
-                        enabled = estado !is UbicacionUi.Buscando
-                    ) { Text("Obtener mi ubicación") }
+            Column(
+                modifier = Modifier.padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { alPulsar() },
+                    enabled = estado !is UbicacionUi.Buscando
+                ) { Text("Obtener mi ubicación") }
 
-                    when (val e = estado) {
+                if (error != null) {
+                    MensajeError(error = error, onReintentar = { alPulsar() })
+                } else {
+                    when (estado) {
                         UbicacionUi.Inicial -> Text("Pulsa el botón para empezar")
                         UbicacionUi.Buscando -> CircularProgressIndicator()
-                        is UbicacionUi.Lista -> {}
-                        is UbicacionUi.Error -> Text(e.mensaje, color = MaterialTheme.colorScheme.error)
+                        else -> Unit
                     }
+
                     OutlinedButton(
                         onClick = { masCercano?.let { vm.seleccionar(it.id) } },
                         enabled = masCercano != null
@@ -102,11 +110,14 @@ fun PantallaMapa(vm: MapaViewModel) {
                         )
                     }
                 }
+            }
 
+            if (error == null) {
                 ListaLugares(
                     lugares = lugares,
                     seleccionado = seleccionado,
                     onClick = { vm.seleccionar(it) },
+                    masCercanoId = masCercano?.id,
                     modifier = Modifier.fillMaxWidth().height(220.dp)
                 )
             }
