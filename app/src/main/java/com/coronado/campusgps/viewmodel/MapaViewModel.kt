@@ -3,7 +3,7 @@ package com.coronado.campusgps.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.coronado.campusgps.data.LugaresRepository
+import com.coronado.campusgps.data.LugaresRepositoryLocal
 import com.coronado.campusgps.data.UbicacionNoDisponibleException
 import com.coronado.campusgps.data.UbicacionRepository
 import com.coronado.campusgps.model.Lugar
@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 
 class MapaViewModel(
     private val ubicacionRepo: UbicacionRepository,
-    private val lugaresRepo: LugaresRepository
+    private val lugaresRepo: LugaresRepositoryLocal
 ) : ViewModel() {
 
     private val _estado = MutableStateFlow<UbicacionUi>(UbicacionUi.Inicial)
