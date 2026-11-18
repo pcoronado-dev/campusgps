@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.coronado.campusgps.data.LugaresRepositoryLocal
 import com.coronado.campusgps.data.UbicacionNoDisponibleException
 import com.coronado.campusgps.data.UbicacionRepository
+import com.coronado.campusgps.data.UltimoLugarRepository
 import com.coronado.campusgps.model.Lugar
 import com.coronado.campusgps.model.LugarConDistancia
 import com.coronado.campusgps.model.Posicion
@@ -24,7 +25,8 @@ import kotlinx.coroutines.launch
 
 class MapaViewModel(
     private val ubicacionRepo: UbicacionRepository,
-    private val lugaresRepo: LugaresRepositoryLocal
+    private val lugaresRepo: LugaresRepositoryLocal,
+    private val ultimoLugarRepo: UltimoLugarRepository
 ) : ViewModel() {
 
     private val _estado = MutableStateFlow<UbicacionUi>(UbicacionUi.Inicial)
@@ -42,6 +44,16 @@ class MapaViewModel(
     val siguiendo: StateFlow<Boolean> = _siguiendo.asStateFlow()
 
     private var seguimientoJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            ultimoLugarRepo.ultimoLugarId.collect { id ->
+                if (id != null && _seleccionado.value == null) {
+                    _seleccionado.value = id
+                }
+            }
+        }
+    }
 
     val masCercano: StateFlow<Lugar?> = lugares
         .map { lista -> lista.firstOrNull { it.metros != null }?.lugar }
@@ -121,6 +133,14 @@ class MapaViewModel(
 
     fun seleccionar(id: Int?) {
         _seleccionado.value = id
+        if (id != null) {
+            val lugar = lugaresRepo.obtenerLugares().firstOrNull { it.id == id }
+            if (lugar != null) {
+                viewModelScope.launch {
+                    ultimoLugarRepo.guardarUltimoLugar(lugar)
+                }
+            }
+        }
     }
 
     private fun actualizarDistancias(pos: Posicion) {
