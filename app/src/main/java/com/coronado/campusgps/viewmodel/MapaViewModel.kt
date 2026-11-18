@@ -12,10 +12,12 @@ import com.coronado.campusgps.model.Posicion
 import com.coronado.campusgps.model.TipoError
 import com.coronado.campusgps.model.UbicacionUi
 import com.coronado.campusgps.util.distanciaMetros
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -35,6 +37,11 @@ class MapaViewModel(
 
     private val _seleccionado = MutableStateFlow<Int?>(null)
     val seleccionado: StateFlow<Int?> = _seleccionado.asStateFlow()
+
+    private val _siguiendo = MutableStateFlow(false)
+    val siguiendo: StateFlow<Boolean> = _siguiendo.asStateFlow()
+
+    private var seguimientoJob: Job? = null
 
     val masCercano: StateFlow<Lugar?> = lugares
         .map { lista -> lista.firstOrNull { it.metros != null }?.lugar }
@@ -56,6 +63,52 @@ class MapaViewModel(
                     actualizarDistancias(it)
                 }
                 .onFailure { _estado.value = errorDe(it) }
+        }
+    }
+
+    fun iniciarSeguimiento() {
+        if (!ubicacionRepo.playServicesDisponible()) {
+            _estado.value = UbicacionUi.Error(
+                "Este dispositivo no tiene Google Play Services",
+                TipoError.SIN_PLAY_SERVICES
+            )
+            return
+        }
+        if (_siguiendo.value) return
+
+        _siguiendo.value = true
+        _estado.value = UbicacionUi.Buscando
+
+        seguimientoJob = viewModelScope.launch {
+            ubicacionRepo.obtenerPosicionesEnVivo()
+                .catch { e ->
+                    _estado.value = errorDe(e)
+                    _siguiendo.value = false
+                }
+                .collect { resultado ->
+                    resultado
+                        .onSuccess { pos ->
+                            _estado.value = UbicacionUi.Lista(pos)
+                            actualizarDistancias(pos)
+                        }
+                        .onFailure { e ->
+                            _estado.value = errorDe(e)
+                        }
+                }
+        }
+    }
+
+    fun detenerSeguimiento() {
+        seguimientoJob?.cancel()
+        seguimientoJob = null
+        _siguiendo.value = false
+    }
+
+    fun toggleSeguimiento() {
+        if (_siguiendo.value) {
+            detenerSeguimiento()
+        } else {
+            iniciarSeguimiento()
         }
     }
 

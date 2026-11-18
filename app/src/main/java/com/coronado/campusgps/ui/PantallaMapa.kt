@@ -23,12 +23,23 @@ fun PantallaMapa(vm: MapaViewModel) {
     val lugares by vm.lugares.collectAsState()
     val seleccionado by vm.seleccionado.collectAsState()
     val masCercano by vm.masCercano.collectAsState()
+    val siguiendo by vm.siguiendo.collectAsState()
     val contexto = LocalContext.current
 
     val lanzador = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { resultado ->
         if (resultado.values.any { it }) vm.buscar() else vm.permisoDenegado()
+    }
+
+    val lanzadorSeguimiento = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { resultado ->
+        if (resultado.values.any { it }) {
+            vm.iniciarSeguimiento()
+        } else {
+            vm.permisoDenegado()
+        }
     }
 
     fun alPulsar() {
@@ -48,6 +59,30 @@ fun PantallaMapa(vm: MapaViewModel) {
                     Manifest.permission.ACCESS_COARSE_LOCATION
                 )
             )
+        }
+    }
+
+    fun alPulsarSeguimiento() {
+        if (siguiendo) {
+            vm.detenerSeguimiento()
+        } else {
+            val fine = ContextCompat.checkSelfPermission(
+                contexto, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            val coarse = ContextCompat.checkSelfPermission(
+                contexto, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (fine || coarse) {
+                vm.iniciarSeguimiento()
+            } else {
+                lanzadorSeguimiento.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            }
         }
     }
 
@@ -83,10 +118,24 @@ fun PantallaMapa(vm: MapaViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
-                    onClick = { alPulsar() },
-                    enabled = estado !is UbicacionUi.Buscando
-                ) { Text("Obtener mi ubicación") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                ) {
+                    Button(
+                        onClick = { alPulsar() },
+                        enabled = estado !is UbicacionUi.Buscando && !siguiendo
+                    ) { Text("Obtener mi ubicación") }
+
+                    Button(
+                        onClick = { alPulsarSeguimiento() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (siguiendo) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text(if (siguiendo) "Detener seguimiento" else "Iniciar seguimiento")
+                    }
+                }
 
                 if (error != null) {
                     MensajeError(error = error, onReintentar = { alPulsar() })
